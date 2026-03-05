@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TH7Cloths | Premium Fashion</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+<style>
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f5f6fa;
+  }
+
+  .product-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  }
+
+  .gold-badge {
+    background: linear-gradient(135deg, #ffd700, #ffb400);
+    color: #000;
+  }
+
+  .details-page {
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="sticky top-0 z-50 bg-white shadow-sm">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+    <div class="flex items-center gap-2">
+      <img src="https://img.sanishtech.com/u/ceb956d181dc2c7cbed2ef1e88e8f44d.jpg"
+           alt="TH7Cloths"
+           class="w-10 h-10 rounded-lg object-cover border border-gray-300">
+
+      <h1 class="font-bold text-xl">TH7Cloths</h1>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <button onclick="toggleSearch()" class="text-gray-600">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </button>
+      <a href="tel:9621237188" class="text-gray-600">
+        <i class="fa-solid fa-headset"></i>
+      </a>
+    </div>
+  </div>
+
+  <div id="search-box" class="hidden px-4 pb-3">
+    <input id="search-input" type="text" placeholder="Search products..."
+      class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-black outline-none">
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="max-w-6xl mx-auto p-4">
+
+  <!-- PRODUCT GRID -->
+  <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+
+  <div id="no-products" class="hidden text-center py-10">
+    <p class="text-gray-500">No products available</p>
+  </div>
+
+</main>
+
+<!-- DETAILS PAGE -->
+<section id="details-page" class="fixed inset-0 bg-white z-50 hidden details-page overflow-y-auto"></section>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCE0kluYIzE6qvMHuOknc7Ao180kve-uCE",
+  authDomain: "bhai-56fce.firebaseapp.com",
+  databaseURL: "https://bhai-56fce-default-rtdb.firebaseio.com",
+  projectId: "bhai-56fce",
+  storageBucket: "bhai-56fce.firebasestorage.app",
+  messagingSenderId: "538076015522",
+  appId: "1:538076015522:web:e9b570dbb992db1af960fb"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+let products = [];
+
+// FETCH PRODUCTS
+onValue(ref(db, 'products'), (snap) => {
+  const data = snap.val();
+  products = data ? Object.entries(data).map(([id, val]) => ({ ...val, id })) : [];
+  renderProducts(products);
+});
+
+// RENDER PRODUCTS
+function renderProducts(list) {
+  const grid = document.getElementById('product-grid');
+  grid.innerHTML = '';
+
+  if(list.length === 0) {
+    document.getElementById('no-products').classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('no-products').classList.add('hidden');
+
+  list.forEach(p => {
+    const img = p.images && p.images.length ? p.images[0] : 'https://via.placeholder.com/300';
+    const discount = p.discountPercent || 0;
+
+    grid.innerHTML += `
+    <div onclick="openDetails('${p.id}')" class="product-card bg-white rounded-xl overflow-hidden border">
+      <div class="relative pt-[120%]">
+        <img src="${img}" class="absolute inset-0 w-full h-full object-cover">
+        ${discount > 0 ? `<span class="absolute top-2 left-2 gold-badge text-xs font-bold px-2 py-1 rounded-full">-${discount}%</span>` : ''}
+      </div>
+      <div class="p-3">
+        <h3 class="text-sm font-semibold truncate">${p.name}</h3>
+        <div class="flex items-center gap-2 mt-1">
+          <span class="font-bold text-lg">₹${p.finalPrice}</span>
+          ${p.originalPrice ? `<span class="text-xs text-gray-400 line-through">₹${p.originalPrice}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  });
+}
+
+// DETAILS PAGE
+window.openDetails = (id) => {
+  const p = products.find(x => x.id === id);
+  if(!p) return;
+
+  const images = (p.images || []).map(img => `
+    <img src="${img}" class="w-full h-full object-cover flex-shrink-0 snap-center">
+  `).join('');
+
+  const prepaid = Math.floor(p.finalPrice * 0.93);
+
+  document.getElementById('details-page').innerHTML = `
+  <button onclick="closeDetails()" class="absolute top-4 left-4 z-10 w-10 h-10 bg-white rounded-full shadow">
+    <i class="fa-solid fa-chevron-left"></i>
+  </button>
+
+  <div class="flex overflow-x-auto snap-x snap-mandatory h-[420px]">
+    ${images || '<img src="https://via.placeholder.com/400" class="w-full h-full object-cover">'}
+  </div>
+
+  <div class="p-6">
+    <h2 class="text-2xl font-bold">${p.name}</h2>
+
+    <div class="flex items-center gap-3 my-4">
+      <span class="text-3xl font-black">₹${p.finalPrice}</span>
+      ${p.originalPrice ? `<span class="text-gray-400 line-through">₹${p.originalPrice}</span>` : ''}
+      ${p.discountPercent ? `<span class="text-red-500 font-bold">${p.discountPercent}% OFF</span>` : ''}
+    </div>
+
+    <div class="bg-blue-50 p-4 rounded-xl mb-6">
+      <h4 class="text-sm font-bold text-blue-800">Bio Tip</h4>
+      <p class="text-xs text-blue-700">${p.bioTip || 'Premium product'}</p>
+    </div>
+
+    <div class="space-y-4 mb-24">
+      <h3 class="font-bold">Select Payment</h3>
+
+      <label class="flex items-center justify-between p-4 border rounded-xl">
+        <div class="flex items-center gap-3">
+          <input type="radio" name="pay" value="Prepaid" checked>
+          <div>
+            <p class="font-bold">Prepaid (Fast)</p>
+            <p class="text-xs text-green-600">Extra 7% Off: ₹${prepaid}</p>
+          </div>
+        </div>
+      </label>
+
+      <label class="flex items-center justify-between p-4 border rounded-xl">
+        <div class="flex items-center gap-3">
+          <input type="radio" name="pay" value="COD">
+          <div>
+            <p class="font-bold">Cash on Delivery</p>
+            <p class="text-xs text-gray-500">₹${p.finalPrice}</p>
+          </div>
+        </div>
+      </label>
+    </div>
+  </div>
+
+  <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t flex justify-between items-center">
+    <div>
+      <p class="text-xs text-gray-400">Total</p>
+      <p id="footer-price" class="text-xl font-bold">₹${prepaid}</p>
+    </div>
+    <button onclick="placeOrder('${p.name}', '${p.finalPrice}', '${prepaid}')" class="bg-black text-white px-8 py-3 rounded-xl">
+      Order Now
+    </button>
+  </div>`;
+
+  document.getElementById('details-page').classList.remove('hidden');
+
+  document.getElementsByName('pay').forEach(el => {
+    el.addEventListener('change', (e) => {
+      document.getElementById('footer-price').innerText =
+        `₹${e.target.value === 'Prepaid' ? prepaid : p.finalPrice}`;
+    });
+  });
+};
+
+window.closeDetails = () => {
+  document.getElementById('details-page').classList.add('hidden');
+};
+
+// ORDER
+window.placeOrder = (name, final, pre) => {
+  const type = document.querySelector('input[name="pay"]:checked').value;
+  const price = type === 'Prepaid' ? pre : final;
+
+  const msg = `*New Order*%0AProduct: ${name}%0APrice: ₹${price}%0APayment: ${type}`;
+  window.open(`https://wa.me/9621237188?text=${msg}`, '_blank');
+};
+
+// SEARCH
+window.toggleSearch = () => {
+  document.getElementById('search-box').classList.toggle('hidden');
+};
+
+document.getElementById('search-input')?.addEventListener('input', (e) => {
+  const term = e.target.value.toLowerCase();
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(term)
+  );
+  renderProducts(filtered);
+});
+</script>
+
+</body>
+</html>
